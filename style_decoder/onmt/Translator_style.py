@@ -9,24 +9,25 @@ class Translator(object):
         self.opt = opt
         self.tt = torch.cuda if opt.cuda else torch
 
-        checkpoint = torch.load(opt.decoder_model, map_location=lambda storage, loc: storage)
         encoder_check = torch.load(opt.encoder_model, map_location=lambda storage, loc: storage)
+        decoder_check = torch.load(opt.decoder_model, map_location=lambda storage, loc: storage)
 
         self.src_dict = encoder_check['dicts']['src']
-        self.tgt_dict = checkpoint['dicts']['tgt']
+        self.tgt_dict = decoder_check['dicts']['tgt']
         enc_opt = encoder_check['opt']
+        dec_opt = decoder_check['opt']
 
         encoder = onmt.Models.Encoder(enc_opt, self.src_dict)
         encoder.load_state_dict(encoder_check['encoder'])
-        decoder = onmt.Models_decoder.Decoder(enc_opt, self.tgt_dict)
-        decoder.load_state_dict(checkpoint['decoder'])
+        decoder = onmt.Models_decoder.Decoder(dec_opt, self.tgt_dict)
+        decoder.load_state_dict(decoder_check['decoder'])
         model = onmt.Models.NMTModel(encoder, decoder)
 
         generator = nn.Sequential(
             nn.Linear(enc_opt.rnn_size, self.tgt_dict.size()),
             nn.LogSoftmax())
 
-        generator.load_state_dict(checkpoint['generator'])
+        generator.load_state_dict(decoder_check['generator'])
 
         if opt.cuda:
             encoder.cuda()
